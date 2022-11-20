@@ -1,0 +1,89 @@
+
+--Vamos a ver el uso de variables en SQL server
+
+create table Comentarios(
+	id int IDENTITY(1,1) NOT NULL,					--Identificador, con auto incremento en 1
+	commentario varchar(50) NULL,					--Valor a setear
+	creacion datetime NOT NULL default GETDATE(),	--Fecha configurada default al momento
+	status varchar(50) NOT NULL default 'active',	--Estatus del registro activo por default
+ CONSTRAINT [PK_Comentarios] PRIMARY KEY CLUSTERED	--Se configura el primary key contrain
+(
+	id ASC	--indice ordenado de forma ascendente
+));
+
+select * from Comentarios;
+
+--Vamos a insertar unos registros de prueba, el valor varchar es de maximo 50 caracteres
+
+
+insert into Comentarios (commentario) values ('Hola');
+insert into Comentarios (commentario) values ('voy');
+insert into Comentarios (commentario) values ('empezando');
+
+--con el comando truncate table reinicializamos la tabla con su contador identity en  1
+/*
+truncate table Comentarios;
+*/
+
+--si usamos el comando delete no se reinicializa el indice
+
+--delete from Comentarios;
+
+
+declare
+	@variable varchar(50) = 'Veamos'
+;
+SET @variable = @variable + ' como';
+--otra forma de asignacion
+SELECT @variable = @variable + ' vamos';
+
+select @variable;
+
+
+insert into Comentarios (commentario) values (@variable);
+
+--Ahora con una variable de entrada en el SP (Store Procedure) 
+--Ahora veamos algo mas complejo, uso de trasacciones para prevenir insertar, actualizar o 
+--borrar, cuando no se desea q pase ese tipo de cosas
+
+
+ALTER PROCEDURE NewComment (@valor varchar(60))
+as
+Declare	
+	@STATUS bit = 1,
+	@TransactionName1 VARCHAR(20) = 'TRANSACTION_1';
+
+	BEGIN TRY
+		BEGIN TRANSACTION @TransactionName1;
+		insert into Comentarios (commentario) values (@valor);
+		COMMIT TRANSACTION @TransactionName1;
+		select @STATUS as STATUS;
+	END TRY
+	BEGIN CATCH
+		SET @STATUS = 0;
+		ROLLBACK TRANSACTION @TransactionName1;
+    SELECT   
+		@STATUS as Status,
+        ERROR_NUMBER() AS ErrorNumber,  
+        ERROR_SEVERITY() AS ErrorSeverity,  
+        ERROR_STATE() AS ErrorState,  
+        ERROR_PROCEDURE() AS ErrorProcedure,  
+        ERROR_MESSAGE() AS ErrorMessage,  
+        ERROR_LINE() AS ErrorLine;
+	END CATCH;
+
+
+
+
+
+
+
+
+Exec NewComment 'Ejemplo 5';
+
+Exec NewComment 'Como vamos 6, q sea mas texto y agregamos mas texto para exceder los 50 caracteres';
+
+select * from Comentarios;
+
+
+
